@@ -18,6 +18,8 @@ embedded-hal = "0.2.3"
 enum-utils = "0.1.2"
 smart-leds = "0.4.0"
 rand = { version = "0.8.5", default-features = false }
+max7219 = "0.4.2"
+max7219-canvas = "0.1.2"
 
 [dependencies.ws2812-spi]
 git = "https://github.com/smart-leds-rs/ws2812-spi-rs"
