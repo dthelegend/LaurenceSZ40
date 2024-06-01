@@ -33,7 +33,7 @@ where
 
     fn step_clockwise(&mut self) {
         self.list_pointer += 1;
-        if self.list_pointer > N {
+        if self.list_pointer >= N {
             self.list_pointer = 0;
         }
     }
@@ -250,16 +250,33 @@ impl LorenzMachine {
         let mut output_buffer = [false; LorenzMachine::OUTPUT_BUFFER_SIZE];
 
         output_buffer[..LorenzMachine::WHEEL_WINDOW].copy_from_slice(&self.psi.a.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[..LorenzMachine::WHEEL_WINDOW].reverse();
+        
         output_buffer[LorenzMachine::WHEEL_WINDOW..LorenzMachine::WHEEL_WINDOW * 2].copy_from_slice(&self.psi.b.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        
         output_buffer[(LorenzMachine::WHEEL_WINDOW * 2)..LorenzMachine::WHEEL_WINDOW * 3].copy_from_slice(&self.psi.c.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[(LorenzMachine::WHEEL_WINDOW * 2)..LorenzMachine::WHEEL_WINDOW * 3].reverse();
+        
         output_buffer[(LorenzMachine::WHEEL_WINDOW * 3)..LorenzMachine::WHEEL_WINDOW * 4].copy_from_slice(&self.psi.d.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        
         output_buffer[(LorenzMachine::WHEEL_WINDOW * 4)..LorenzMachine::WHEEL_WINDOW * 5].copy_from_slice(&self.psi.e.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[(LorenzMachine::WHEEL_WINDOW * 4)..LorenzMachine::WHEEL_WINDOW * 5].reverse();
+        
         output_buffer[(LorenzMachine::WHEEL_WINDOW * 5)..LorenzMachine::WHEEL_WINDOW * 6].copy_from_slice(&self.mu.f.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        
         output_buffer[(LorenzMachine::WHEEL_WINDOW * 6)..LorenzMachine::WHEEL_WINDOW * 7].copy_from_slice(&self.mu.g.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[(LorenzMachine::WHEEL_WINDOW * 6)..LorenzMachine::WHEEL_WINDOW * 7].reverse();
+        
         output_buffer[(LorenzMachine::WHEEL_WINDOW * 7)..LorenzMachine::WHEEL_WINDOW * 8].copy_from_slice(&self.chi.h.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        
         output_buffer[(LorenzMachine::WHEEL_WINDOW * 8)..LorenzMachine::WHEEL_WINDOW * 9].copy_from_slice(&self.chi.j.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[(LorenzMachine::WHEEL_WINDOW * 8)..LorenzMachine::WHEEL_WINDOW * 9].reverse();
+        
         output_buffer[(LorenzMachine::WHEEL_WINDOW * 9)..LorenzMachine::WHEEL_WINDOW * 10].copy_from_slice(&self.chi.k.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        
         output_buffer[(LorenzMachine::WHEEL_WINDOW * 10)..LorenzMachine::WHEEL_WINDOW * 11].copy_from_slice(&self.chi.l.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[(LorenzMachine::WHEEL_WINDOW * 10)..LorenzMachine::WHEEL_WINDOW * 11].reverse();
+        
         output_buffer[(LorenzMachine::WHEEL_WINDOW * 11)..].copy_from_slice(&self.psi.b.as_array()[..LorenzMachine::WHEEL_WINDOW]);
 
         output_buffer

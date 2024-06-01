@@ -20,6 +20,9 @@ const ALL_OFF : [RGB8;LorenzMachine::OUTPUT_BUFFER_SIZE] = [RGB8::new(0,0,0); Lo
 #[arduino_hal::entry]
 fn main() -> ! {
     const GREETING : &str = "HELLO, WORLD! ";
+    const WAIT_DELAY: u16 = 500;
+    const COLOR_ON : RGB8 = RGB8::new(0, 255, 0);
+    const COLOR_OFF : RGB8 = RGB8::new(0,0,255);
 
     let dp = arduino_hal::Peripherals::take().unwrap();
     let pins = arduino_hal::pins!(dp);
@@ -33,6 +36,15 @@ fn main() -> ! {
      * for a different board can be adapted for yours.  The Arduino Uno currently has the most
      * examples available.
      */
+
+    pins.d2.into_pull_up_input();
+    pins.d3.into_pull_up_input();
+    pins.d4.into_pull_up_input();
+    pins.d5.into_pull_up_input();
+    pins.d6.into_pull_up_input();
+    pins.d7.into_pull_up_input();
+
+    arduino_hal::
 
     let (spi, _) = arduino_hal::spi::Spi::new(
         dp.SPI,
@@ -70,7 +82,7 @@ fn main() -> ! {
                 // let result = machine.encode_at_step(c1);
                 
                 let out = machine.draw().map(
-                    |x| if x { RGB8::new(0, 255, 0) } else { RGB8::new(0,0,255) });
+                    |x| if x { COLOR_ON } else { COLOR_OFF });
                 ws.write(out).unwrap();
             },
             EncoderOut::ShiftAndChar(c1,c2) => {
@@ -78,11 +90,11 @@ fn main() -> ! {
                 let result = machine.encode_at_step(c1);
                 
                 let out = machine.draw().map(
-                    |x| if x { RGB8::new(0, 255, 0) } else { RGB8::new(0,0, 255) });
+                    |x| if x { COLOR_ON } else { COLOR_OFF });
                 ws.write(out).unwrap();
 
                 // Wait for effect!
-                arduino_hal::delay_ms(1000);
+                arduino_hal::delay_ms(WAIT_DELAY);
 
                 // Step the encoder
                 machine.step_machine();
@@ -91,13 +103,13 @@ fn main() -> ! {
                 // let result = machine.encode_at_step(c2);
                 
                 let out = machine.draw().map(
-                    |x| if x { RGB8::new(0, 255, 0) } else { RGB8::new(0,0,255) });
+                    |x| if x { COLOR_ON } else { COLOR_OFF });
                 ws.write(out).unwrap();
             }
         }
 
         // Wait for effect!
-        arduino_hal::delay_ms(1000);
+        arduino_hal::delay_ms(WAIT_DELAY);
 
         // Step the encoder
         machine.step_machine();
