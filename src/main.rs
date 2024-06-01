@@ -3,7 +3,6 @@
 
 mod ita2;
 mod lorenz;
-mod wheel;
 
 use arduino_hal::spi;
 use panic_halt as _;
@@ -34,14 +33,14 @@ fn main() -> ! {
         pins.d50.into_pull_up_input(),
         pins.d53.into_output(),
         spi::Settings {
-            clock: spi::SerialClockRate::OscfOver8,
+            // clock: spi::SerialClockRate::OscfOver8,
             ..Default::default()
         },
     );
 
-    let mut output_buffer = [0; 20 + (3 * 12)];
-    let mut data: [RGB8; 3] = [RGB8::default(); 3];
-    let empty: [RGB8; 3] = [RGB8::default(); 3];
+    let mut output_buffer = [0; 59 + (3 * 12)];
+    let mut data: [RGB8; 5] = [RGB8::default(); 5];
+    let empty: [RGB8; 5] = [RGB8::default(); 5];
     let mut ws = Ws2812::new(spi, &mut output_buffer);
 
     loop {
@@ -60,10 +59,15 @@ fn main() -> ! {
             g: 0,
             b: 0,
         };
+        data[3] = RGB8 {
+            r: 0x10,
+            g: 0,
+            b: 0,
+        };
 
         ws.write(data.iter().cloned()).unwrap();
-        arduino_hal::delay_ms(1000);
+        arduino_hal::delay_ms(2000);
         ws.write(empty.iter().cloned()).unwrap();
-        arduino_hal::delay_ms(1000);
+        arduino_hal::delay_ms(2000);
     }
 }
