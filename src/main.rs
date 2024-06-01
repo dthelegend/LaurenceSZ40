@@ -5,6 +5,7 @@ mod ita2;
 mod lorenz;
 
 use arduino_hal::spi;
+use lorenz::LorenzWheel;
 use panic_halt as _;
 
 use smart_leds::{SmartLedsWrite, RGB8};

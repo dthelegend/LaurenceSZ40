@@ -1,5 +1,7 @@
-use rand::Rng;
 use rand::distributions::{Distribution, Standard};
+use rand::Rng;
+use smart_leds::RGB8;
+use ws2812_spi::prerendered::devices::Ws2812;
 
 struct Wheel<const N: usize, T> {
     front: [T; N],
@@ -8,20 +10,20 @@ struct Wheel<const N: usize, T> {
     rear_length: usize,
 }
 
-impl <const N: usize, T : Default + Copy + Sized> Wheel<N, T> {
+impl<const N: usize, T: Default + Copy + Sized> Wheel<N, T> {
     fn new_default() -> Self {
         Wheel {
             front: [T::default(); N],
             front_length: N,
             rear: [T::default(); N],
-            rear_length: 0
+            rear_length: 0,
         }
     }
 }
 
-impl <const N: usize, T: Copy + Default + Sized> Wheel<N, T>
+impl<const N: usize, T: Copy + Default + Sized> Wheel<N, T>
 where
-    Standard: Distribution<T>
+    Standard: Distribution<T>,
 {
     fn new_random(rng: &mut impl Rng) -> Self {
         let mut wheel = Self::new_default();
@@ -63,18 +65,18 @@ where
 }
 
 #[repr(transparent)]
-struct LorenzWheel<const N : usize> (Wheel<N, bool>);
+pub struct LorenzWheel<const N: usize>(Wheel<N, bool>);
 
-impl <const N : usize> LorenzWheel<N> {
-    fn new_zeroed() -> Self {
+impl<const N: usize> LorenzWheel<N> {
+    pub fn new_zeroed() -> Self {
         LorenzWheel(Wheel::new_default())
     }
 
-    fn new_random(rng: &mut impl Rng) -> Self {
+    pub fn new_random(rng: &mut impl Rng) -> Self {
         LorenzWheel(Wheel::new_random(rng))
     }
-    
-    fn step(&mut self) {
+
+    pub fn step(&mut self) {
         self.0.step_clockwise();
     }
 }
@@ -84,7 +86,7 @@ struct LorenzPsiWheels {
     b: LorenzWheel<47>,
     c: LorenzWheel<51>,
     d: LorenzWheel<53>,
-    e: LorenzWheel<59>
+    e: LorenzWheel<59>,
 }
 
 impl LorenzPsiWheels {
@@ -95,7 +97,7 @@ impl LorenzPsiWheels {
 
 struct LorenzMuWheels {
     f: LorenzWheel<37>,
-    g: LorenzWheel<61>
+    g: LorenzWheel<61>,
 }
 
 struct LorenzChiWheels {
@@ -103,11 +105,21 @@ struct LorenzChiWheels {
     j: LorenzWheel<31>,
     k: LorenzWheel<29>,
     l: LorenzWheel<26>,
-    m: LorenzWheel<23>
+    m: LorenzWheel<23>,
 }
 
 struct LorenzMachine {
     psi: LorenzPsiWheels,
     mu: LorenzMuWheels,
-    chi: LorenzChiWheels
+    chi: LorenzChiWheels,
+}
+
+impl LorenzMachine {
+    pub fn draw(&self, ws: &mut Ws2812) {
+        const WHEEL_COUNT: usize = 12 * 9 * 12;
+
+        let mut output_buffer = [0; 40 + WHEEL_COUNT];
+        let mut data = [RGB8::default(); WHEEL_COUNT];
+        let empty = [RGB8::default(); WHEEL_COUNT];
+    }
 }
