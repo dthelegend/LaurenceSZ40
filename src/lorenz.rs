@@ -29,58 +29,53 @@ where
         for i in 0..N {
             wheel.front[i] = rng.gen();
         }
-        
+
         wheel
     }
 
-    fn step_clockwise(mut self) -> Self {
-        self = self.enforce_invariant();
-        
+    fn step_clockwise(&mut self) {
+        self.enforce_invariant();
+
         self.rear[self.rear_length] = self.front[self.front_length - 1];
 
         self.front_length -= 1;
-        
-        self
     }
-    
-    fn enforce_invariant(mut self) -> Self {
+
+    fn enforce_invariant(&mut self) {
         self.front_length = N;
         self.rear_length = 0;
         self.front.copy_from_slice(&self.rear);
         self.front.reverse();
-        
-        self
     }
-    
+
     fn read_head(&self) -> T {
         self.front[self.front_length]
     }
 
     fn as_array(&self) -> [T; N] {
         let mut out = [T::default(); N];
-        
+
         out[..self.front_length].copy_from_slice(&self.front[..self.front_length]);
         out[self.front_length..].copy_from_slice(&self.rear[..self.rear_length]);
-        
+
         out
     }
 }
 
-struct LorenzWheel<const N : usize> {
-    wheel: Wheel<N, bool>
-}
+#[repr(transparent)]
+struct LorenzWheel<const N : usize> (Wheel<N, bool>);
 
 impl <const N : usize> LorenzWheel<N> {
     fn new_zeroed() -> Self {
-        LorenzWheel {
-            wheel: Wheel::new_default()
-        }
+        LorenzWheel(Wheel::new_default())
     }
 
     fn new_random(rng: &mut impl Rng) -> Self {
-        LorenzWheel {
-            wheel: Wheel::new_random(rng)
-        }
+        LorenzWheel(Wheel::new_random(rng))
+    }
+    
+    fn step(&mut self) {
+        self.0.step_clockwise();
     }
 }
 
@@ -90,6 +85,12 @@ struct LorenzPsiWheels {
     c: LorenzWheel<51>,
     d: LorenzWheel<53>,
     e: LorenzWheel<59>
+}
+
+impl LorenzPsiWheels {
+    fn step_all() {
+        todo!()
+    }
 }
 
 struct LorenzMuWheels {
