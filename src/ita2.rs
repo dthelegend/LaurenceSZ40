@@ -1,4 +1,4 @@
-struct Decoder<T>
+pub struct Decoder<T>
 where
     T: Iterator<Item = u8>,
 {
@@ -114,31 +114,40 @@ pub struct Encoder<T>
     source: T,
 }
 
+impl <T: Iterator<Item = char>> Encoder<T> {
+    pub fn new(source: T) -> Self {
+        Self {
+            figure_shift: false,
+            source
+        }
+    }
+}
+
 const FS : u8 = 0x1B;
 const LS : u8 = 0x1F;
 
-pub union EncoderOut {
-    single_character: u8,
-    shift_and_character: [u8; 2]
+pub enum EncoderOut {
+    Single(u8),
+    ShiftAndChar(u8, u8)
 }
 
 impl From<u8> for EncoderOut {
     fn from(value: u8) -> Self {
-        EncoderOut { single_character: value }
+        EncoderOut::Single(value)
     }
 }
 
 impl From<[u8;2]> for EncoderOut {
-    fn from(value: [u8;2]) -> Self {
-        EncoderOut { shift_and_character: value }
+    fn from([value1, value2]: [u8;2]) -> Self {
+        EncoderOut::ShiftAndChar(value1, value2)
     }
 }
+
 
 impl<T: Iterator<Item = char>> Iterator for Encoder<T> {
     type Item = EncoderOut;
 
     fn next(&mut self) -> Option<Self::Item> {
-        
         if let Some(v) = self.source.next() {
             match v {
                 // Doesn't care

@@ -1,22 +1,18 @@
+use core::ops::{Deref, DerefMut};
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
-use smart_leds::RGB8;
-use ws2812_spi::prerendered::devices::Ws2812;
+use crate::ita2::EncoderOut;
 
-struct Wheel<const N: usize, T> {
-    front: [T; N],
-    front_length: usize,
-    rear: [T; N],
-    rear_length: usize,
+pub struct Wheel<const N: usize, T> {
+    list: [T; N],
+    list_pointer: usize,
 }
 
 impl<const N: usize, T: Default + Copy + Sized> Wheel<N, T> {
     fn new_default() -> Self {
         Wheel {
-            front: [T::default(); N],
-            front_length: N,
-            rear: [T::default(); N],
-            rear_length: 0,
+            list: [T::default(); N],
+            list_pointer: 0
         }
     }
 }
@@ -29,36 +25,27 @@ where
         let mut wheel = Self::new_default();
 
         for i in 0..N {
-            wheel.front[i] = rng.gen();
+            wheel.list[i] = rng.gen();
         }
 
         wheel
     }
 
     fn step_clockwise(&mut self) {
-        self.enforce_invariant();
-
-        self.rear[self.rear_length] = self.front[self.front_length - 1];
-
-        self.front_length -= 1;
-    }
-
-    fn enforce_invariant(&mut self) {
-        self.front_length = N;
-        self.rear_length = 0;
-        self.front.copy_from_slice(&self.rear);
-        self.front.reverse();
+        self.list_pointer += 1;
+        if self.list_pointer > N {
+            self.list_pointer = 0;
+        }
     }
 
     fn read_head(&self) -> T {
-        self.front[self.front_length]
+        self.list[self.list_pointer]
     }
-
     fn as_array(&self) -> [T; N] {
         let mut out = [T::default(); N];
 
-        out[..self.front_length].copy_from_slice(&self.front[..self.front_length]);
-        out[self.front_length..].copy_from_slice(&self.rear[..self.rear_length]);
+        out[..(N - self.list_pointer)].copy_from_slice(&self.list[self.list_pointer..]);
+        out[(N - self.list_pointer)..].copy_from_slice(&self.list[..self.list_pointer]);
 
         out
     }
@@ -67,6 +54,20 @@ where
 #[repr(transparent)]
 pub struct LorenzWheel<const N: usize>(Wheel<N, bool>);
 
+impl <const N: usize> Deref for LorenzWheel<N> {
+    type Target = Wheel<N, bool>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl <const N: usize> DerefMut for LorenzWheel<N> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 impl<const N: usize> LorenzWheel<N> {
     pub fn new_zeroed() -> Self {
         LorenzWheel(Wheel::new_default())
@@ -74,10 +75,6 @@ impl<const N: usize> LorenzWheel<N> {
 
     pub fn new_random(rng: &mut impl Rng) -> Self {
         LorenzWheel(Wheel::new_random(rng))
-    }
-
-    pub fn step(&mut self) {
-        self.0.step_clockwise();
     }
 }
 
@@ -90,8 +87,42 @@ struct LorenzPsiWheels {
 }
 
 impl LorenzPsiWheels {
-    fn step_all() {
-        todo!()
+    const N_WHEELS: usize = 5;
+
+    fn new_zeroed() -> Self {
+        Self {
+            a: LorenzWheel::new_zeroed(),
+            b: LorenzWheel::new_zeroed(),
+            c: LorenzWheel::new_zeroed(),
+            d: LorenzWheel::new_zeroed(),
+            e: LorenzWheel::new_zeroed()
+        }
+    }
+
+    fn new_random(rng: &mut impl Rng) -> Self {
+        Self {
+            a: LorenzWheel::new_random(rng),
+            b: LorenzWheel::new_random(rng),
+            c: LorenzWheel::new_random(rng),
+            d: LorenzWheel::new_random(rng),
+            e: LorenzWheel::new_random(rng)
+        }
+    }
+
+    fn step_all(&mut self) {
+        self.a.step_clockwise();
+        self.b.step_clockwise();
+        self.c.step_clockwise();
+        self.d.step_clockwise();
+        self.e.step_clockwise();
+    }
+
+    fn read_all(&self) -> u8 {
+        (self.a.read_head() as u8) << 4
+            + (self.b.read_head() as u8) << 3
+            + (self.c.read_head() as u8) << 2
+            + (self.d.read_head() as u8) << 1
+            + (self.e.read_head() as u8) << 0
     }
 }
 
@@ -99,6 +130,25 @@ struct LorenzMuWheels {
     f: LorenzWheel<37>,
     g: LorenzWheel<61>,
 }
+
+impl LorenzMuWheels {
+    const N_WHEELS: usize = 2;
+
+    fn new_zeroed() -> LorenzMuWheels {
+        LorenzMuWheels {
+            f: LorenzWheel::new_zeroed(),
+            g: LorenzWheel::new_zeroed()
+        }
+    }
+    
+    fn new_random(rng : &mut impl Rng) -> LorenzMuWheels {
+        LorenzMuWheels {
+            f: LorenzWheel::new_random(rng),
+            g: LorenzWheel::new_random(rng)
+        }
+    }
+}
+
 
 struct LorenzChiWheels {
     h: LorenzWheel<41>,
@@ -108,18 +158,110 @@ struct LorenzChiWheels {
     m: LorenzWheel<23>,
 }
 
-struct LorenzMachine {
+impl LorenzChiWheels {
+    const N_WHEELS: usize = 5;
+
+    fn new_zeroed() -> Self {
+        Self {
+            h: LorenzWheel::new_zeroed(),
+            j: LorenzWheel::new_zeroed(),
+            k: LorenzWheel::new_zeroed(),
+            l: LorenzWheel::new_zeroed(),
+            m: LorenzWheel::new_zeroed()
+        }
+    }
+
+    fn new_random(rng: &mut impl Rng) -> Self {
+        Self {
+            h: LorenzWheel::new_random(rng),
+            j: LorenzWheel::new_random(rng),
+            k: LorenzWheel::new_random(rng),
+            l: LorenzWheel::new_random(rng),
+            m: LorenzWheel::new_random(rng)
+        }
+    }
+
+    fn step_all(&mut self) {
+        self.h.step_clockwise();
+        self.j.step_clockwise();
+        self.k.step_clockwise();
+        self.l.step_clockwise();
+        self.m.step_clockwise();
+    }
+
+    fn read_all(&self) -> u8 {
+        (self.h.read_head() as u8) << 4
+            + (self.j.read_head() as u8) << 3
+            + (self.k.read_head() as u8) << 2
+            + (self.l.read_head() as u8) << 1
+            + (self.m.read_head() as u8) << 0
+    }
+}
+
+pub struct LorenzMachine {
     psi: LorenzPsiWheels,
     mu: LorenzMuWheels,
     chi: LorenzChiWheels,
 }
 
 impl LorenzMachine {
-    pub fn draw(&self, ws: &mut Ws2812) {
-        const WHEEL_COUNT: usize = 12 * 9 * 12;
+    const WHEEL_WINDOW : usize = 9;
+    pub const OUTPUT_BUFFER_SIZE : usize = LorenzMachine::WHEEL_WINDOW * LorenzPsiWheels::N_WHEELS
+        + LorenzMachine::WHEEL_WINDOW * LorenzMuWheels::N_WHEELS
+        + LorenzMachine::WHEEL_WINDOW * LorenzChiWheels::N_WHEELS;
 
-        let mut output_buffer = [0; 40 + WHEEL_COUNT];
-        let mut data = [RGB8::default(); WHEEL_COUNT];
-        let empty = [RGB8::default(); WHEEL_COUNT];
+    pub fn new_zeroed() -> Self {
+        LorenzMachine {
+            psi: LorenzPsiWheels::new_zeroed(),
+            mu: LorenzMuWheels::new_zeroed(),
+            chi: LorenzChiWheels::new_zeroed()
+        }
+    }
+    
+    pub fn new_random(rng: &mut impl Rng) -> Self {
+        LorenzMachine {
+            psi: LorenzPsiWheels::new_random(rng),
+            mu: LorenzMuWheels::new_random(rng),
+            chi: LorenzChiWheels::new_random(rng)
+        }
+    }
+
+    pub fn step_machine(&mut self) {
+        // Always step psi
+        self.psi.step_all();
+        // Step chi if both motor wheels
+        if self.mu.f.read_head() && self.mu.g.read_head() {
+            self.chi.step_all()
+        }
+        // Step motor g if motor f
+        if self.mu.f.read_head() {
+            self.mu.g.step_clockwise()
+        }
+        // Step motor f
+        self.mu.f.step_clockwise();
+    }
+
+    pub fn encode_at_step(&self, v: u8) -> u8 {
+        v ^ self.chi.read_all() ^ self.psi.read_all()
+    }
+
+    pub fn draw(&self) -> [bool; LorenzMachine::OUTPUT_BUFFER_SIZE] {
+
+        let mut output_buffer = [false; LorenzMachine::OUTPUT_BUFFER_SIZE];
+
+        output_buffer[..LorenzMachine::WHEEL_WINDOW].copy_from_slice(&self.psi.a.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[LorenzMachine::WHEEL_WINDOW..LorenzMachine::WHEEL_WINDOW * 2].copy_from_slice(&self.psi.b.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[(LorenzMachine::WHEEL_WINDOW * 2)..LorenzMachine::WHEEL_WINDOW * 3].copy_from_slice(&self.psi.c.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[(LorenzMachine::WHEEL_WINDOW * 3)..LorenzMachine::WHEEL_WINDOW * 4].copy_from_slice(&self.psi.d.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[(LorenzMachine::WHEEL_WINDOW * 4)..LorenzMachine::WHEEL_WINDOW * 5].copy_from_slice(&self.psi.e.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[(LorenzMachine::WHEEL_WINDOW * 5)..LorenzMachine::WHEEL_WINDOW * 6].copy_from_slice(&self.mu.f.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[(LorenzMachine::WHEEL_WINDOW * 6)..LorenzMachine::WHEEL_WINDOW * 7].copy_from_slice(&self.mu.g.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[(LorenzMachine::WHEEL_WINDOW * 7)..LorenzMachine::WHEEL_WINDOW * 8].copy_from_slice(&self.chi.h.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[(LorenzMachine::WHEEL_WINDOW * 8)..LorenzMachine::WHEEL_WINDOW * 9].copy_from_slice(&self.chi.j.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[(LorenzMachine::WHEEL_WINDOW * 9)..LorenzMachine::WHEEL_WINDOW * 10].copy_from_slice(&self.chi.k.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[(LorenzMachine::WHEEL_WINDOW * 10)..LorenzMachine::WHEEL_WINDOW * 11].copy_from_slice(&self.chi.l.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+        output_buffer[(LorenzMachine::WHEEL_WINDOW * 11)..].copy_from_slice(&self.psi.b.as_array()[..LorenzMachine::WHEEL_WINDOW]);
+
+        output_buffer
     }
 }
