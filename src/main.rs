@@ -1,10 +1,15 @@
 #![no_std]
 #![no_main]
 
-mod lorenz;
 mod ita2;
+mod lorenz;
 
+use arduino_hal::spi;
 use panic_halt as _;
+
+use smart_leds::{SmartLedsWrite, RGB8};
+
+use ws2812_spi::prerendered::Ws2812;
 
 #[arduino_hal::entry]
 fn main() -> ! {
@@ -21,10 +26,48 @@ fn main() -> ! {
      * examples available.
      */
 
-    let mut led = pins.d13.into_output();
+    let (spi, _) = spi::Spi::new(
+        dp.SPI,
+        pins.d52.into_output(),
+        pins.d51.into_output(),
+        pins.d50.into_pull_up_input(),
+        pins.d53.into_output(),
+        spi::Settings {
+            // clock: spi::SerialClockRate::OscfOver8,
+            ..Default::default()
+        },
+    );
+
+    let mut output_buffer = [0; 59 + (3 * 12)];
+    let mut data: [RGB8; 5] = [RGB8::default(); 5];
+    let empty: [RGB8; 5] = [RGB8::default(); 5];
+    let mut ws = Ws2812::new(spi, &mut output_buffer);
 
     loop {
-        led.toggle();
-        arduino_hal::delay_ms(1000);
+        data[0] = RGB8 {
+            r: 0,
+            g: 0,
+            b: 0x10,
+        };
+        data[1] = RGB8 {
+            r: 0,
+            g: 0x10,
+            b: 0,
+        };
+        data[2] = RGB8 {
+            r: 0x10,
+            g: 0,
+            b: 0,
+        };
+        data[3] = RGB8 {
+            r: 0x10,
+            g: 0,
+            b: 0,
+        };
+
+        ws.write(data.iter().cloned()).unwrap();
+        arduino_hal::delay_ms(2000);
+        ws.write(empty.iter().cloned()).unwrap();
+        arduino_hal::delay_ms(2000);
     }
 }
