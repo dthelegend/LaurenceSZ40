@@ -38,36 +38,27 @@ fn main() -> ! {
         },
     );
 
-    let mut output_buffer = [0; 59 + (3 * 12)];
-    let mut data: [RGB8; 5] = [RGB8::default(); 5];
-    let empty: [RGB8; 5] = [RGB8::default(); 5];
+    let mut output_buffer = [0; 40 + (300 * 12)];
+    let mut data: [RGB8; 300] = [RGB8::default(); 300];
+    let empty: [RGB8; 300] = [RGB8::default(); 300];
     let mut ws = Ws2812::new(spi, &mut output_buffer);
 
+    let mut lit = 0;
+
     loop {
-        data[0] = RGB8 {
-            r: 0,
-            g: 0,
-            b: 0x10,
-        };
-        data[1] = RGB8 {
-            r: 0,
+        data[lit] = RGB8 {
+            r: 0x10,
             g: 0x10,
-            b: 0,
-        };
-        data[2] = RGB8 {
-            r: 0x10,
-            g: 0,
-            b: 0,
-        };
-        data[3] = RGB8 {
-            r: 0x10,
-            g: 0,
-            b: 0,
+            b: 0x10,
         };
 
         ws.write(data.iter().cloned()).unwrap();
-        arduino_hal::delay_ms(2000);
-        ws.write(empty.iter().cloned()).unwrap();
-        arduino_hal::delay_ms(2000);
+        arduino_hal::delay_ms(100);
+        data = empty;
+        if lit == 299 {
+            lit = 0;
+        } else {
+            lit += 1;
+        }
     }
 }
